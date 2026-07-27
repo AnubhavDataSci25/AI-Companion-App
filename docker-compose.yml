@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: ankane/pgvector:latest   # Postgres + pgvector extension pre-installed
+    container_name: companion_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: companion_user
+      POSTGRES_PASSWORD: companion_pass
+      POSTGRES_DB: companion_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U companion_user -d companion_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: companion_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:
