@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api import health, auth, chat, memory, journal, mood
+from app.api import health, auth, chat, memory, journal, mood, reminder, relationship
 from app.core.config import settings
 
 app = FastAPI(title=settings.app_name)
@@ -11,6 +11,8 @@ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(memory.router, prefix="/api/memories", tags=["memories"])
 app.include_router(journal.router, prefix="/api/journal", tags=["journal"])
 app.include_router(mood.router, prefix="/api/mood", tags=["mood"])
+app.include_router(reminder.router, prefix="/api/reminders", tags=["reminders"])
+app.include_router(relationship.router, prefix="/api/relationship", tags=["relationship"])
 
 @app.get("/")
 def root():
