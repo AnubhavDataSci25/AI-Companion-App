@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.core.database import Base
 from app.core.config import settings
-from app.models import user, session, message, conversation, memory, profile  # noqa: F401 - imported so Alembic sees the tables
+from app.models import user, session, message, conversation, memory, profile, mood, journal  # noqa: F401 - imported so Alembic sees the tables
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

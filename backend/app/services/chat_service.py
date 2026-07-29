@@ -5,10 +5,12 @@ from sqlalchemy.orm import Session as DBSession
 from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.memory import Memory
+from app.models.mood import MoodEntry
 from app.services import ai_service
 from app.services.memory_retrieval_service import retrieve_relevant_memories, format_memory_context
 from app.services.memory_extraction_service import extract_memories, needs_consent
 from app.services.embedding_service import embed_text
+from app.services.mood_service import detect_mood
 
 
 def get_or_create_conversation(db: DBSession, user_id: uuid.UUID, conversation_id: str | None) -> Conversation:
@@ -59,6 +61,16 @@ def send_message(db: DBSession, user_id: uuid.UUID, conversation_id: str | None,
     db.add(user_msg)
     db.commit()
 
+    mood_result = detect_mood(content)
+    user_msg.mood = mood_result["mood_label"]
+    db.add(MoodEntry(
+        user_id=user_id,
+        mood_label=mood_result["mood_label"],
+        intensity=mood_result["intensity"],
+        source="chat",
+    ))
+    db.commit()
+
     # Build conversation history for Gemini (last 20 messages, simple cap for now)
     history = (
         db.query(Message)
@@ -72,7 +84,10 @@ def send_message(db: DBSession, user_id: uuid.UUID, conversation_id: str | None,
         for m in history
     ]
 
-    reply_text = ai_service.generate_reply(gemini_history)
+    relevant_memories = retrieve_relevant_memories(db, user_id, content)
+    memory_context = format_memory_context(relevant_memories)
+
+    reply_text = ai_service.generate_reply(gemini_history, memory_context=memory_context, current_mood=mood_result["mood_label"])
 
     ami_msg = Message(conversation_id=convo.id, sender="ami", content=reply_text)
     db.add(ami_msg)

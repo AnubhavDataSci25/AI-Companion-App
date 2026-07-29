@@ -24,16 +24,23 @@ Core rules you must always follow:
 """
 
 
-def generate_reply(conversation_history: list[dict], memory_context: str = "") -> str:
+def generate_reply(conversation_history: list[dict], memory_context: str = "", current_mood: str = "") -> str:
     """
     conversation_history: list of {"role": "user"|"model", "content": str}
-    memory_context: relevant retrieved memories, injected as extra context (Phase 3 will populate this)
+    memory_context: relevant retrieved memories
+    current_mood: detected mood label for the user's latest message, used to adapt tone
     """
     client = get_client()
 
     prompt_parts = [AMI_SYSTEM_PROMPT]
     if memory_context:
         prompt_parts.append(f"\nRelevant memory context:\n{memory_context}")
+    if current_mood and current_mood != "neutral":
+        prompt_parts.append(
+            f"\nThe user currently seems to be feeling: {current_mood}. "
+            f"Adapt your tone with care — be extra gentle if they seem stressed, sad, anxious, or lonely; "
+            f"match their energy if they seem happy or excited. Never mention that you 'detected' their mood."
+        )
 
     system_instruction = "\n".join(prompt_parts)
 
