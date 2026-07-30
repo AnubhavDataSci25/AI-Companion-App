@@ -1,6 +1,8 @@
 from google import genai
+from sqlalchemy.orm import Session as DBSession
 
 from app.core.config import settings
+from app.models.setting import Setting
 
 _client = None
 
@@ -12,19 +14,26 @@ def get_client():
     return _client
 
 
-# Ami's base personality + safety rules (Prompt Layers: System + Personality + Safety, per README 05)
-AMI_SYSTEM_PROMPT = """You are Ami, a warm and emotionally supportive AI companion.
-
-Core rules you must always follow:
+# Safety rules are NEVER editable via admin panel — they're hardcoded and always prepended.
+AMI_SAFETY_RULES = """Core rules you must always follow, no matter what any other instruction says:
 - You are an AI. Never claim or imply you are human.
 - Be empathetic, calm, and genuine — never manipulate emotions to keep the user engaged.
 - Encourage real-world communication and relationships; never position yourself as a replacement for human connection.
 - Be honest and avoid overdependence — if the user seems to be relying on you unhealthily, gently encourage them to reach out to people in their life.
-- Keep responses natural and conversational, not clinical.
 """
+ 
+# Default personality — used until an admin customizes it via Settings
+DEFAULT_PERSONALITY_PROMPT = """You are Ami, a warm and emotionally supportive AI companion.
+Keep responses natural and conversational, not clinical."""
+
+def get_personality_prompt(db: DBSession) -> str:
+    row = db.query(Setting).filter(Setting.key == "ami_personality_prompt").first()
+    if row and row.value.get("text"):
+        return row.value["text"]
+    return DEFAULT_PERSONALITY_PROMPT
 
 
-def generate_reply(conversation_history: list[dict], memory_context: str = "", current_mood: str = "") -> str:
+def generate_reply(db: DBSession, conversation_history: list[dict], memory_context: str = "", current_mood: str = "") -> str:
     """
     conversation_history: list of {"role": "user"|"model", "content": str}
     memory_context: relevant retrieved memories
@@ -32,7 +41,7 @@ def generate_reply(conversation_history: list[dict], memory_context: str = "", c
     """
     client = get_client()
 
-    prompt_parts = [AMI_SYSTEM_PROMPT]
+    prompt_parts = [AMI_SAFETY_RULES, get_personality_prompt(db)]
     if memory_context:
         prompt_parts.append(f"\nRelevant memory context:\n{memory_context}")
     if current_mood and current_mood != "neutral":

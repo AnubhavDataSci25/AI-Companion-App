@@ -87,7 +87,7 @@ def send_message(db: DBSession, user_id: uuid.UUID, conversation_id: str | None,
     relevant_memories = retrieve_relevant_memories(db, user_id, content)
     memory_context = format_memory_context(relevant_memories)
 
-    reply_text = ai_service.generate_reply(gemini_history, memory_context=memory_context, current_mood=mood_result["mood_label"])
+    reply_text = ai_service.generate_reply(db, gemini_history, memory_context=memory_context, current_mood=mood_result["mood_label"])
 
     ami_msg = Message(conversation_id=convo.id, sender="ami", content=reply_text)
     db.add(ami_msg)
