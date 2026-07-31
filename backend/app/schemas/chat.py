@@ -1,4 +1,7 @@
+from datetime import datetime
 from typing import Optional
+from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -10,3 +13,11 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     conversation_id: str
     reply: str
+
+
+class ChatMessageOut(BaseModel):
+    id: UUID
+    sender: str
+    content: str
+    mood: Optional[str] = None
+    created_at: datetime

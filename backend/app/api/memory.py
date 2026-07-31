@@ -11,8 +11,9 @@ router = APIRouter()
 
 
 @router.get("/", response_model=list[MemoryOut])
-def list_memories(db: DBSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(Memory).filter(Memory.user_id == current_user.id).order_by(Memory.created_at.desc()).all()
+def list_memories(limit: int=50, offset: int = 0, db: DBSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    limit = min(limit, 100)
+    return db.query(Memory).filter(Memory.user_id == current_user.id).order_by(Memory.created_at.desc()).offset(offset).limit(limit).all()
 
 
 @router.post("/{memory_id}/approve", response_model=MemoryOut)

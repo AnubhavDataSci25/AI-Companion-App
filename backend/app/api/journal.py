@@ -20,10 +20,13 @@ def create_entry(payload: JournalCreate, db: DBSession = Depends(get_db), curren
 
 
 @router.get("/", response_model=list[JournalOut])
-def list_entries(db: DBSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+def list_entries(limit: int=50, offset: int = 0, db: DBSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    limit = min(limit, 100)
     return (
         db.query(JournalEntry)
         .filter(JournalEntry.user_id == current_user.id)
         .order_by(JournalEntry.created_at.desc())
+        .offset(offset)
+        .limit(limit)
         .all()
     )
