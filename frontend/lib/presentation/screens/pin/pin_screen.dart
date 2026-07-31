@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../providers/app_providers.dart';
 
-class PinScreen extends StatefulWidget {
+class PinScreen extends ConsumerStatefulWidget {
   const PinScreen({super.key});
 
   @override
-  State<PinScreen> createState() => _PinScreenState();
+  ConsumerState<PinScreen> createState() => _PinScreenState();
 }
 
-class _PinScreenState extends State<PinScreen> {
+class _PinScreenState extends ConsumerState<PinScreen> {
   final List<String> _pin = [];
+  final _nameController = TextEditingController();
   static const _maxPinLength = 6;
+  bool _loading = false;
+  String? _error;
 
   void _onKeyTap(String digit) {
     if (_pin.length < _maxPinLength) {
-      setState(() => _pin.add(digit));
+      setState(() {
+        _pin.add(digit);
+        _error = null;
+      });
     }
   }
 
@@ -24,9 +32,30 @@ class _PinScreenState extends State<PinScreen> {
     }
   }
 
-  void _onSubmit() {
-    // TODO: wire to auth API in the next step
-    if (_pin.length >= 4) {
+  Future<void> _onSubmit() async {
+    if (_nameController.text.trim().isEmpty) {
+      setState(() => _error = 'Enter your name first.');
+      return;
+    }
+    if (_pin.length < 4) return;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final authRepo = ref.read(authRepositoryProvider);
+    final error = await authRepo.login(_nameController.text.trim(), _pin.join());
+
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    if (error != null) {
+      setState(() {
+        _error = error;
+        _pin.clear();
+      });
+    } else {
       context.go('/home');
     }
   }
@@ -35,13 +64,21 @@ class _PinScreenState extends State<PinScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Enter your PIN', style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+              Text('Welcome to Ami', style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(hintText: 'Your name'),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              Text('Enter your PIN', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(_maxPinLength, (i) {
@@ -59,13 +96,19 @@ class _PinScreenState extends State<PinScreen> {
                   );
                 }),
               ),
-              const SizedBox(height: 40),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ],
+              const SizedBox(height: 24),
               _buildKeypad(),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _pin.length >= 4 ? _onSubmit : null,
-                child: const Text('Unlock'),
-              ),
+              _loading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: _pin.length >= 4 ? _onSubmit : null,
+                      child: const Text('Unlock'),
+                    ),
             ],
           ),
         ),
