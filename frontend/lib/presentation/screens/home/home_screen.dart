@@ -20,6 +20,18 @@ class HomeScreen extends StatelessWidget {
               label: 'Chat with Ami',
               onTap: () => context.go('/chat'),
             ),
+            const SizedBox(height: 12),
+            _HomeCard(
+              icon: Icons.mood_rounded,
+              label: 'Mood Tracker',
+              onTap: () => context.go('/mood'),
+            ),
+            const SizedBox(height: 12),
+            _HomeCard(
+              icon: Icons.menu_book_rounded,
+              label: 'Journal',
+              onTap: () => context.go('/journal'),
+            ),
           ],
         ),
       ),
